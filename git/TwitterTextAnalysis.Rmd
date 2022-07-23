@@ -1,0 +1,242 @@
+---
+title: "TwitterAnalysis"
+author: "nsardar"
+date: '2022-07-23'
+output: html_document
+---
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+Loading the libraries
+
+```{r message=FALSE}
+options(scipen = 999) #avoid the scientific notation
+library(twitteR)
+library(writexl)
+library(bitops)
+library(tidytext)
+library(devtools)
+library(sentiment)
+library(quanteda)
+library(quanteda.textstats)
+library(quanteda.textplots)
+
+```
+
+### Getting Data 
+
+Based on the tweets from 4  different mobile manufacturing companies and then we will be doing text analysis and visualization for this companies.
+
+We will be using twitter developer portal to get acces to tweets from twitter website.
+
+
+```{r message=FALSE}
+
+consumer_key = "3N1fyHxwhVAVs5BCXzuQ8vbXV"
+consumer_secret = "IVf6acHFxRWVQ006HNlDP9hygzOXx1XkZdKF9cMZlbL717AIQu"
+access_token = "1458218683017347078-UTwl4ULAneM8wgDJypPXsU2KNhI8pU"
+acess_token_secret = "4mLTYRLgJHSEoeV3qdz10WT7NdjwOH95AgvA8QCULhr0e"
+
+setup_twitter_oauth(consumer_key,consumer_secret,access_token,acess_token_secret)
+```
+
+### Mobile Companies 
+
+We will be using data from the below mentioned companies :
+1) Motorola
+2) Xiaomi
+3) Oneplus
+4) Samsung
+
+```{r message=FALSE }
+
+
+tweetsMotorola = userTimeline('MotorolaUS', n = 1000)
+tweetsXiaomi = userTimeline('Xiaomi', n = 1000)
+tweetsOnePlus = userTimeline('oneplus', n = 1000)
+tweetsSamsung = userTimeline('SamsungMobile', n = 1000)
+
+
+tweetsDfMotorola = twListToDF(tweetsMotorola)
+head(tweetsDfMotorola,2)
+tweetsDfXiaomi = twListToDF(tweetsXiaomi)
+head(tweetsDfXiaomi,2)
+tweetsDfOnePlus = twListToDF(tweetsOnePlus)
+head(tweetsDfOnePlus,2)
+tweetsDfSamsung = twListToDF(tweetsSamsung)
+head(tweetsDfSamsung,2)
+
+```
+
+### Sentiment Analysis 
+
+#### The below score indicates whether the tweets are positive , negative or neutral
+#### 4 Positive
+#### 2 Neutral
+#### 0 Negative
+
+```{r message=FALSE}
+finalExtractedTweets = rbind(tweetsDfMotorola, tweetsDfXiaomi, tweetsDfOnePlus, tweetsDfSamsung)
+
+encodeSource <- function(x) {
+  if(x=="<a href=\"http://twitter.com/download/iphone\" rel=\"nofollow\">Twitter for iPhone</a>"){
+    gsub("<a href=\"http://twitter.com/download/iphone\" rel=\"nofollow\">Twitter for iPhone</a>", "iphone", x,fixed=TRUE)
+  }else if(x=="<a href=\"http://twitter.com/#!/download/ipad\" rel=\"nofollow\">Twitter for iPad</a>"){
+    gsub("<a href=\"http://twitter.com/#!/download/ipad\" rel=\"nofollow\">Twitter for iPad</a>","ipad",x,fixed=TRUE)
+  }else if(x=="<a href=\"http://twitter.com/download/android\" rel=\"nofollow\">Twitter for Android</a>"){
+    gsub("<a href=\"http://twitter.com/download/android\" rel=\"nofollow\">Twitter for Android</a>","android",x,fixed=TRUE)
+  } else if(x=="<a href=\"http://twitter.com\" rel=\"nofollow\">Twitter Web Client</a>"){
+    gsub("<a href=\"http://twitter.com\" rel=\"nofollow\">Twitter Web Client</a>","Web",x,fixed=TRUE)
+  } else if(x=="<a href=\"http://www.twitter.com\" rel=\"nofollow\">Twitter for Windows Phone</a>"){
+    gsub("<a href=\"http://www.twitter.com\" rel=\"nofollow\">Twitter for Windows Phone</a>","windows phone",x,fixed=TRUE)
+  }else if(x=="<a href=\"http://dlvr.it\" rel=\"nofollow\">dlvr.it</a>"){
+    gsub("<a href=\"http://dlvr.it\" rel=\"nofollow\">dlvr.it</a>","dlvr.it",x,fixed=TRUE)
+  }else if(x=="<a href=\"http://ifttt.com\" rel=\"nofollow\">IFTTT</a>"){
+    gsub("<a href=\"http://ifttt.com\" rel=\"nofollow\">IFTTT</a>","ifttt",x,fixed=TRUE)
+  }else if(x=="<a href=\"http://earthquaketrack.com\" rel=\"nofollow\">EarthquakeTrack.com</a>"){
+    gsub("<a href=\"http://earthquaketrack.com\" rel=\"nofollow\">EarthquakeTrack.com</a>","earthquaketrack",x,fixed=TRUE)
+  }else if(x=="<a href=\"http://www.didyoufeel.it/\" rel=\"nofollow\">Did You Feel It</a>"){
+    gsub("<a href=\"http://www.didyoufeel.it/\" rel=\"nofollow\">Did You Feel It</a>","did_you_feel_it",x,fixed=TRUE)
+  }else if(x=="<a href=\"http://www.mobeezio.com/apps/earthquake\" rel=\"nofollow\">Earthquake Mobile</a>"){
+    gsub("<a href=\"http://www.mobeezio.com/apps/earthquake\" rel=\"nofollow\">Earthquake Mobile</a>","earthquake_mobile",x,fixed=TRUE)
+  }else if(x=="<a href=\"http://www.facebook.com/twitter\" rel=\"nofollow\">Facebook</a>"){
+    gsub("<a href=\"http://www.facebook.com/twitter\" rel=\"nofollow\">Facebook</a>","facebook",x,fixed=TRUE)
+  }else {
+    "others"
+  }
+}
+
+finalExtractedTweets$tweetSource = sapply(finalExtractedTweets$statusSource,function(sourceSystem) encodeSource(sourceSystem))
+
+tweetsSentiment<-sentiment(finalExtractedTweets$text)   # instead used amazondf$text 
+finalExtractedTweets$polarity <- tweetsSentiment$polarity # Polarity denotes whther the tweet is neagtive, positive or neutral 
+
+```
+
+### Final Results for Sentiment analysis on tweets
+
+```{r}
+head(finalExtractedTweets,5)
+```
+
+### Extracting Results into excel to visualize in Tableau
+
+```{r message=FALSE}
+
+#write_xlsx(finalExtractedTweets,'TweetsData.xlsx')
+
+```
+
+## Text Analysis and Visualization
+
+We will be first visualizing text for individual companies and generate some isnights
+
+```{r message=FALSE }
+
+ourCorpusMotorola =  corpus(tweetsDfMotorola,text_field = 'text')
+ourCorpusXiaomi = corpus(tweetsDfXiaomi,text_field = 'text')
+ourCorpusOnePlus =  corpus(tweetsDfOnePlus,text_field = 'text')
+ourCorpusSamsung =  corpus(tweetsDfSamsung,text_field = 'text')
+
+# Lets remove few stop words and punctuation
+
+ourTokensMotorola <- tokens(ourCorpusMotorola, remove_punct = TRUE)
+ourTokensXiaomi <- tokens(ourCorpusXiaomi, remove_punct = TRUE)
+ourTokensOnePlus <- tokens(ourCorpusOnePlus, remove_punct = TRUE)
+ourTokensSamsung <- tokens(ourCorpusSamsung, remove_punct = TRUE)
+
+ourTokensMotorolaNS <- tokens_select(ourTokensMotorola, stopwords('en'),selection = 'remove' , min_nchar =4) 
+ourTokensXiaomiNS <- tokens_select(ourTokensXiaomi, stopwords('en'),selection = 'remove' , min_nchar =4)  
+ourTokensOnePlusNS <- tokens_select(ourTokensOnePlus, stopwords('en'),selection = 'remove' , min_nchar =4)  
+ourTokensSamsungNS <- tokens_select(ourTokensSamsung, stopwords('en'),selection = 'remove' , min_nchar =4)  
+
+ourMatrixMotorola <- dfm(ourTokensMotorolaNS)
+ourMatrixXiaomi <- dfm(ourTokensXiaomiNS)
+ourMatrixOnePlus <- dfm(ourTokensOnePlusNS)
+ourMatrixSamsung <- dfm(ourTokensSamsungNS)
+
+# Top 5 features for each company
+topfeatures(ourMatrixMotorola,5)   # Motorola
+topfeatures(ourMatrixXiaomi,5)     # Xiaomi
+topfeatures(ourMatrixOnePlus,5)    # Oneplus 
+topfeatures(ourMatrixSamsung,5)   # Samsung
+
+# Wordcloud for most used words in the 5 companies 
+
+textplot_wordcloud(ourMatrixMotorola,max_words = 200)  # Motorola
+textplot_wordcloud(ourMatrixXiaomi,max_words = 200)    # Xiaomi
+textplot_wordcloud(ourMatrixOnePlus,max_words = 200)   # Oneplus
+textplot_wordcloud(ourMatrixSamsung,max_words = 200)      # Samsung
+```
+
+### Let's visualize plot for each company based on frequency of words which has been repeated atleast 10 times.
+
+```{r message=FALSE}
+
+# Motorola
+dfmIaugMoto = dfm(ourMatrixMotorola)
+dfmIaugMoto = dfm_trim(dfmIaugMoto , min_termfreq=10) 
+textplot_wordcloud(dfmIaugMoto,max_words = 200 , min_size = 2)
+
+# Xiaomi
+dfmIaugXiaomi = dfm(ourMatrixXiaomi)
+dfmIaugXiaomi = dfm_trim(dfmIaugXiaomi , min_termfreq=10) 
+textplot_wordcloud(dfmIaugXiaomi,max_words = 200 , min_size = 2)
+
+# Oneplus
+dfmIaugOnePlus = dfm(ourMatrixOnePlus)
+dfmIaugOnePlus = dfm_trim(dfmIaugOnePlus , min_termfreq=10) 
+textplot_wordcloud(dfmIaugOnePlus,max_words = 200 , min_size = 2)
+
+
+# Samsung
+dfmIaugSamsung = dfm(ourMatrixSamsung)
+dfmIaugSamsung = dfm_trim(dfmIaugSamsung , min_termfreq=10) 
+textplot_wordcloud(dfmIaugSamsung,max_words = 200 , min_size = 2)
+
+```
+
+###  Visualization of all the 5 twitter accounts together 
+
+```{r message=FALSE}
+
+our_corpus <- corpus(finalExtractedTweets,text_field = 'text')
+head(our_corpus,2)
+
+# Lets remove few words and punctuation
+
+our_tokens <- tokens(our_corpus, remove_punct = TRUE)
+words_to_be_removed<-c() # Currently we are not removing any additional extra words
+our_tokens_nonstopwords<- tokens_select(our_tokens, pattern = c(stopwords('en'), words_to_be_removed),selection = 'remove', min_nchar = 4)
+
+
+# Document feature Matrix to show frequency of tokens in each document
+
+our_matrix<-dfm(our_tokens_nonstopwords)
+our_matrix<-dfm_trim(our_matrix, min_termfreq = 10, min_docfreq = 5)
+nfeat(our_matrix) #number of tokens in all documents
+
+
+#Most mentioned words
+
+topfeatures(our_matrix,10)
+topfeatures(our_matrix,30)
+
+set.seed(42)
+textplot_wordcloud(our_matrix, max_words = 200, min_size = 1, max_size = 4)  # All 5 companies combined
+
+```
+### Better Visualization of wordcloud for all the 5 companies 
+```{r}
+# Text plot showing visualization of all the companies together
+
+corpus_subset(our_corpus, screenName %in% c("MotorolaUS", "Xiaomi", "oneplus","SamsungMobile")) %>%
+  tokens(remove_punct = TRUE) %>%
+  tokens_remove(stopwords("english")) %>%
+  dfm() %>%
+  dfm_group(groups = screenName) %>%
+  dfm_trim(min_termfreq = 5, verbose = FALSE) %>%
+  textplot_wordcloud(comparison = TRUE, max_words = 200)
+
+```
